@@ -41,7 +41,10 @@ async def select_place(message: Message, state: FSMContext):
     await message.answer('Привет, для начала работы, напиши на какой точке хуяришь. Введи номер места, который тебе дал владос!',
                          reply_markup=None);
 
-    
+@router.message(F.text == 'Начать работу')
+async def about_us(message: Message):
+    await message.answer('Информация о нас', reply_markup=kb.main)
+
 @router.message(Place.id_place)
 async def place(message: Message, state: FSMContext):
     if message.text not in places:
@@ -58,4 +61,8 @@ async def back(callback: CallbackQuery):
     await callback.answer('Вы вернулись назад')
     await callback.message.answer('Вы вернулись назад', reply_markup=kb.main)
     
+@router.callback_query(F.data == 'about_us')
+async def back(callback: CallbackQuery):
+    await callback.answer('Вы вернулись назад')
+    await callback.message.answer('Вы вернулись назад', reply_markup=kb.main)
 
