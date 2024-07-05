@@ -1,7 +1,8 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 start = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text='Зарегестрироваться'), KeyboardButton(text='Войти')],
+    [KeyboardButton(text='Зарегестрироваться'),
+     KeyboardButton(text='О нас')],
 ],  resize_keyboard=True,
     one_time_keyboard=True,
     input_field_placeholder='Выберите пункт меню')
@@ -22,3 +23,14 @@ work_started = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Сделать перерыв', callback_data='pause_work')],
     [InlineKeyboardButton(text='Закончить работу', callback_data='end_work')]
 ])  
+
+cancel = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text='Отмена')],
+],  resize_keyboard=True,
+    input_field_placeholder='Выберите пункт меню')
+
+yes_or_no = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text='Да'), 
+     KeyboardButton(text='Нет')],
+],  resize_keyboard=True,
+    input_field_placeholder='Выберите пункт меню')
