@@ -20,6 +20,10 @@ router = Router()
 # Command /Start
 @router.message(CommandStart())
 async def start(message: Message):
+    """
+    The start command is called when the user sends the /start command. It sends a welcome message to the user
+    and sends a sticker to the user as well.
+    """
     await message.answer(f'Привет, {message.from_user.full_name}!!',
                          reply_markup=mainkb.start)
     await bot.send_sticker(chat_id=message.from_user.id,
@@ -28,6 +32,9 @@ async def start(message: Message):
 # Cancel
 @router.message(F.text == "Отмена")
 async def cancel(message: Message, state: FSMContext):
+    """
+    Cancels the current state and returns to the main menu.
+    """
     await state.clear()
     if await check_registered(message):
         await message.answer("Вы вернулись назад", reply_markup=mainkb.main)
@@ -37,6 +44,10 @@ async def cancel(message: Message, state: FSMContext):
 # Register
 @router.message(F.text == "Зарегестрироваться")
 async def start_register(message: Message, state: FSMContext):
+    """
+    The start_register command is called when the user sends the /start_register command. It sends a welcome message
+    to the user and sends a sticker to the user as well.
+    """
     if not await check_registered(message):  
         username = message.from_user.username
         if not username:
@@ -55,6 +66,11 @@ async def start_register(message: Message, state: FSMContext):
 
 @router.message(Register.RegFullName)
 async def register_fullname(message: Message, state: FSMContext):
+    """
+    Handles the registration of the user's full name.
+    
+    This function is called when the user sends a message with their full name during the registration process. It updates the user's data with their full name and sets the state to RegPhoneNumber.
+    """
     await message.answer(f'Приятно познакомиться {message.text} \n'
                          f'Теперь напишете свой номер телефона! \n'
                          f'Формат: +370XXXXXXXX')
@@ -63,6 +79,11 @@ async def register_fullname(message: Message, state: FSMContext):
     
 @router.message(Register.RegPhoneNumber)
 async def register_phone(message: Message, state: FSMContext):
+    """
+    Handles the registration of the user's phone number.
+    
+    This function is called when the user sends a message with their phone number during the registration process. It updates the user's data with their phone number and sets the state to RegDate.
+    """
     if(re.findall(r"\+370\d{8}", message.text)):
         await message.answer(f'Ваш номер {message.text} \n'
                              f'Теперь напишите свою дату рождения! \n'
@@ -74,12 +95,22 @@ async def register_phone(message: Message, state: FSMContext):
 
 @router.message(Register.RegDate)
 async def register_date(message: Message, state: FSMContext):
+    """
+    Handles the registration of the user's date of birth.
+    
+    This function is called when the user sends a message with their date of birth during the registration process. It updates the user's data with their date of birth and sets the state to RegFinish.
+    """
     await message.answer(f'Ваша дата рождения {message.text}, все данные верны?', reply_markup=mainkb.yes_or_no)
     await state.update_data(regdate=message.text)
     await state.set_state(Register.RegFinish)
 
 @router.message(Register.RegFinish)
 async def register_finish(message: Message, state: FSMContext):
+    """
+    Handles the final step of the registration process.
+    
+    If the user confirms the registration data, their data is added to the database and a confirmation message is sent to the user. Otherwise, the user is given the option to go back to the registration process.
+    """
     if message.text == 'Да':
         reg_data = await state.get_data()    
     
@@ -100,6 +131,11 @@ async def register_finish(message: Message, state: FSMContext):
 
 @router.message(F.text == 'Начать работу')
 async def select_place(message: Message, state: FSMContext):
+    """
+    Selects the place for work.
+    
+    If the user is registered, the user is sent to the SelectPlace state. Otherwise, the user is sent to the Start state.
+    """
     if await check_registered(message):
         await state.set_state(Place.id_place)
         await message.answer('Привет, для начала работы, напиши на какой точке хуяришь. Введи номер места, который тебе дал владос!',
@@ -111,6 +147,11 @@ async def select_place(message: Message, state: FSMContext):
 # Select place ==> Work started OR Back
 @router.message(Place.id_place)
 async def place(message: Message, state: FSMContext):
+    """
+    Handles the selection of a place for work.
+
+    If the user enters a valid place, the state is updated with the selected place and the user is prompted to start working. Otherwise, an error message is sent to the user.
+    """
     if message.text not in places:
         await message.answer('Такого места нет!')
         return
@@ -124,6 +165,9 @@ async def place(message: Message, state: FSMContext):
 # Work started ==> End work
 @router.callback_query(F.data == 'work_started')
 async def back(callback: CallbackQuery, state: FSMContext):
+    """
+    Set state to worktime_started and update data with current time.
+    """
     await state.set_state(Work.worktime_started)
     await state.update_data(worktime_started=datetime.now().strftime('%Y-%m-%d %H:%M'))
     print("Начало работы: ", datetime.now().strftime('%Y-%m-%d %H:%M'))
@@ -134,6 +178,10 @@ async def back(callback: CallbackQuery, state: FSMContext):
 # End work ==> Main KB
 @router.callback_query(F.data == 'end_work')
 async def end_work(callback: CallbackQuery, state: FSMContext):
+    """
+    Set state to worktime_ended and update data with current time.
+    Then set state to collection and send message to user.
+    """
     await state.set_state(Work.worktime_ended)
     await state.update_data(worktime_ended=datetime.now().strftime('%Y-%m-%d %H:%M'))
     print("Завершение работы: ", datetime.now().strftime('%Y-%m-%d %H:%M'))
@@ -142,6 +190,9 @@ async def end_work(callback: CallbackQuery, state: FSMContext):
     
 @router.callback_query(F.data == 'pause_work')
 async def pause_work(callback: CallbackQuery, state: FSMContext):
+    """
+    Set state to pause_time and update data with current time.
+    """
     await state.set_state(Work.pause_time)
     await state.update_data(pause_time=datetime.now().strftime('%Y-%m-%d %H:%M'))
     print("Пауза работы: ", datetime.now().strftime('%Y-%m-%d %H:%M'))
@@ -149,6 +200,9 @@ async def pause_work(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'resume_work')
 async def resume_work(callback: CallbackQuery, state: FSMContext):
+    """
+    Set state to resume_time and update data with current time.
+    """
     await state.set_state(Work.resume_time)
     await state.update_data(resume_time=datetime.now().strftime('%Y-%m-%d %H:%M'))
     print("Продолжение работы: ", datetime.now().strftime('%Y-%m-%d %H:%M'))
@@ -157,6 +211,10 @@ async def resume_work(callback: CallbackQuery, state: FSMContext):
 
 @router.message(Work.collection)
 async def collection(message: Message, state: FSMContext):
+    """
+    Handle user input for collection.
+    User should input number without currency sign.
+    """
     if not message.text.isdigit():
         await message.answer('Это должно быть целое положительное число, не -100, не 100.22. А например 100')
     else:
@@ -166,6 +224,9 @@ async def collection(message: Message, state: FSMContext):
         
 @router.message(Work.finish)
 async def work_finish(message: Message, state: FSMContext):
+    """
+    Handles the work finish state. Checks if the answer is 'Да' and if so, calculates the total work time and earnings. Stores the work record in the database and sends a message with the total time and earnings.
+    """
     if message.text == 'Да':
         data = await state.get_data()
         username = message.from_user.username
@@ -206,6 +267,9 @@ async def work_finish(message: Message, state: FSMContext):
 # About us
 @router.message(F.text == 'О нас')
 async def about_us(message: Message):
+    """
+    Displays information about the organization.
+    """
     if await check_registered(message):
         await message.answer('Информация о нас', reply_markup=mainkb.main)
     else:
@@ -215,5 +279,8 @@ async def about_us(message: Message):
 # Back
 @router.callback_query(F.data == 'back')
 async def back(callback: CallbackQuery):
+    """
+    Handles the back callback query. It sends a message and updates the keyboard.
+    """
     await callback.answer('Вы вернулись назад')
     await callback.message.answer('Вы вернулись назад', reply_markup=mainkb.main)

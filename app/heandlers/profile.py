@@ -17,22 +17,34 @@ router = Router()
 
 @router.message(F.text == 'Профиль')
 async def profile(message: Message):
+    """
+    Show user profile.
+    """
     if await is_admin(message):
         await admin_profile(message)
     else:
         await message.answer('Профиль юзера', reply_markup=mainkb.main)
 
 async def admin_profile(message: Message):
+    """
+    Show admin profile.
+    """
     await message.answer('Добро пожаловать в профиль админа!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.admin_profile)
 
 @router.callback_query(F.data == 'all_users')
 async def all_users(callback: CallbackQuery, state: FSMContext):
+    """
+    Show all users in admin profile.
+    """
     await state.set_state(ChoiceUser.username)
     await state.update_data(page=1)
     await show_users(callback, state)
 
 @router.callback_query(F.data.startswith('page_'))
 async def show_users(callback: CallbackQuery, state: FSMContext):
+    """
+    Show all users in admin profile.
+    """
     data = await state.get_data()
     page = int(callback.data.split('_')[1]) if 'page_' in callback.data else data.get('page', 1)
     await state.update_data(page=page)
@@ -51,6 +63,9 @@ async def show_users(callback: CallbackQuery, state: FSMContext):
     
 @router.message(ChoiceUser.username)
 async def choice_user_state(message: Message, state: FSMContext):
+    """
+    Show information about chosen user.
+    """
     db = Database(config.DB_NAME)
     username = message.text[1:] if message.text.startswith('@') else message.text
     user = db.get_user(username)
@@ -65,6 +80,9 @@ async def choice_user_state(message: Message, state: FSMContext):
     
 @router.callback_query(F.data == 'get_user_stats')
 async def get_user_stats(callback: CallbackQuery, state: FSMContext):
+    """
+    Get user stats.
+    """
     data = await state.get_data()
     username = data.get('username')
     db = Database(config.DB_NAME)
@@ -104,12 +122,18 @@ async def get_user_stats(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'delete_user')
 async def delete_user(callback: CallbackQuery, state: FSMContext):
+    """
+    Delete user.
+    """
     data = await state.get_data()
     username = data.get('username')
     await callback.message.edit_text(f'Удалить пользователя @{username}?', reply_markup=prkb.admin_delete_user)
     
 @router.callback_query(F.data == 'delete_user_yes')
 async def delete_yes(callback: CallbackQuery, state: FSMContext):
+    """
+    Delete user and his stats.
+    """
     data = await state.get_data()
     username = data.get('username')
     db = Database(config.DB_NAME)
@@ -118,6 +142,9 @@ async def delete_yes(callback: CallbackQuery, state: FSMContext):
     
 @router.callback_query(F.data == 'delete_user_stats')
 async def delete_user_stats(callback: CallbackQuery, state: FSMContext):
+    """
+    Delete user stats.
+    """
     data = await state.get_data()
     username = data.get('username')
     await callback.message.edit_text(f'Удалить статистику для пользователя @{username}?', reply_markup=prkb.admin_delete_stats)
@@ -125,6 +152,9 @@ async def delete_user_stats(callback: CallbackQuery, state: FSMContext):
     
 @router.callback_query(F.data == 'delete_stats_yes')
 async def delete_yes(callback: CallbackQuery, state: FSMContext):
+    """
+    Nolification for Delete user stats.
+    """
     data = await state.get_data()
     username = data.get('username')
     db = Database(config.DB_NAME)
@@ -136,5 +166,8 @@ async def delete_yes(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'pback')
 async def back(callback: CallbackQuery, state: FSMContext):
+    """
+    Back to admin profile menu.
+    """
     await state.clear()
     await callback.message.edit_text('Добро пожаловать в профиль админа!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.admin_profile)
