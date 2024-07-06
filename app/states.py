@@ -14,5 +14,10 @@ class Place(StatesGroup):
 class Work(StatesGroup):
     worktime_started = State()
     worktime_ended = State()
+    pause_time = State()
+    resume_time = State()
     collection = State()
     finish = State()
+
+class ChoiceUser(StatesGroup):
+    username = State()

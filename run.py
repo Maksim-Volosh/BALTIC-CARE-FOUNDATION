@@ -1,7 +1,8 @@
 import asyncio
 
 from aiogram import Bot, Dispatcher
-from app.heandlers import router
+from app.heandlers.heandlers import router
+from app.heandlers.profile import router as profile_router
 from app.commands import set_commands
 
 from config import TOKEN
@@ -9,14 +10,15 @@ from config import TOKEN
 bot = Bot(token=TOKEN)  
 dp = Dispatcher()
     
-
-print('BOT HAS BEEN STARTED')
+dp.include_router(router)
+dp.include_router(profile_router)
 
 
 async def main():
     await set_commands(bot)
-    dp.include_router(router)
-    await dp.start_polling(bot, skip_updates=True)
+    print('BOT HAS BEEN STARTED')
+    await dp.start_polling(bot, skip_updates=False)
+    
     
     
 if __name__ == '__main__':

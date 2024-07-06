@@ -42,6 +42,27 @@ class Database():
     def get_user(self, user_tgid):
         users = self.cursor.execute("SELECT * FROM users WHERE user_tgid = ?", (user_tgid,))
         return users.fetchone()
+    
+    def delete_user(self, user_tgid):
+        self.cursor.execute("DELETE FROM users WHERE user_tgid = ?", (user_tgid,))
+        self.connection.commit()
+    
+    def delete_user_stats(self, user_tgid):
+        self.cursor.execute("DELETE FROM work_records WHERE username = ?", (user_tgid,))
+        self.connection.commit()
+        
+    def best_day_collection(self, username):
+        self.cursor.execute(
+            "SELECT start_time FROM work_records WHERE username = ? ORDER BY collection DESC LIMIT 1",
+            (username,)
+        )
+        return self.cursor.fetchone()
+    
+
+    
+    def all_users(self):
+        users = self.cursor.execute("SELECT * FROM users")
+        return users.fetchall()
 
     def add_work_record(self, username, start_time, end_time, total_time, collection, earnings):
         self.cursor.execute("INSERT INTO work_records(username, start_time, end_time, total_time, collection, earnings) VALUES(?, ?, ?, ?, ?, ?)",
