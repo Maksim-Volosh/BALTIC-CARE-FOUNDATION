@@ -1,6 +1,6 @@
 import sqlite3
 import bcrypt
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class Database():
     def __init__(self, db_name):
@@ -53,12 +53,98 @@ class Database():
         
     def best_day_collection(self, username):
         self.cursor.execute(
-            "SELECT start_time FROM work_records WHERE username = ? ORDER BY collection DESC LIMIT 1",
+            "SELECT * FROM work_records WHERE username = ? ORDER BY collection DESC LIMIT 1",
             (username,)
         )
         return self.cursor.fetchone()
     
+    def worse_day_collection(self, username):
+        self.cursor.execute(
+            "SELECT * FROM work_records WHERE username = ? ORDER BY collection ASC LIMIT 1",
+            (username,)
+        )
+        return self.cursor.fetchone()
+    
+    def total_collection_current_month(self):
+        current_year = datetime.now().year
+        current_month = datetime.now().month
+        
+        self.cursor.execute(
+            "SELECT SUM(collection) FROM work_records WHERE strftime('%Y', start_time) = ? AND strftime('%m', start_time) = ?",
+            (str(current_year), f'{current_month:02}')
+        )
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+    
+    def count_work_records_current_month(self):
+        current_year = datetime.now().year
+        current_month = datetime.now().month
+        
+        self.cursor.execute(
+            "SELECT COUNT(*) FROM work_records WHERE strftime('%Y', start_time) = ? AND strftime('%m', start_time) = ?",
+            (str(current_year), f'{current_month:02}')
+        )
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+    
+    def count_work_hours_current_month(self):
+        current_year = datetime.now().year
+        current_month = datetime.now().month
+        
+        self.cursor.execute(
+            "SELECT total_time FROM work_records WHERE strftime('%Y', start_time) = ? AND strftime('%m', start_time) = ?",
+            (str(current_year), f'{current_month:02}')
+        )
+        records = self.cursor.fetchall()
+        
+        total_minutes = 0
+        for record in records:
+            try:
+                time_parts = record[0].split(':')
+                hours = int(time_parts[0])
+                minutes = int(time_parts[1])
+                seconds = int(time_parts[2])
+                total_minutes += hours * 60 + minutes + seconds / 60  # Преобразуем в минуты и суммируем
+            except ValueError:
+                continue  # Пропускаем записи, которые не могут быть преобразованы
 
+        total_hours = int(total_minutes // 60)
+        remaining_minutes = int(total_minutes % 60)
+        
+        return f"{total_hours} часов {remaining_minutes} минут"
+
+    def best_user_hours_current_month(self):
+        current_year = datetime.now().year
+        current_month = datetime.now().month
+        
+        self.cursor.execute(
+            "SELECT username, total_time FROM work_records WHERE strftime('%Y', start_time) = ? AND strftime('%m', start_time) = ? ORDER BY total_time DESC LIMIT 1 ",
+            (str(current_year), f'{current_month:02}')
+        )
+        return self.cursor.fetchone()
+        
+    def best_user_collection_current_month(self):
+        current_year = datetime.now().year
+        current_month = datetime.now().month
+        
+        self.cursor.execute(    
+            "SELECT username, start_time, total_time, collection FROM work_records WHERE strftime('%Y', start_time) = ? AND strftime('%m', start_time) = ?  ORDER BY collection DESC LIMIT 1",
+            (str(current_year), f'{current_month:02}')
+        )
+        return self.cursor.fetchone()
+        
+    
+    def best_user_by_collection_current_month(self):
+        current_year = datetime.now().year
+        current_month = datetime.now().month
+        
+        self.cursor.execute(
+            "SELECT username, SUM(collection) as collection FROM work_records "
+            "WHERE strftime('%Y', start_time) = ? AND strftime('%m', start_time) = ? "
+            "GROUP BY username ORDER BY collection DESC LIMIT 1",
+            (str(current_year), f'{current_month:02}')
+        )
+        return self.cursor.fetchone()
     
     def all_users(self):
         users = self.cursor.execute("SELECT * FROM users")

@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime, timedelta
 from aiogram import F, Router
 from aiogram.types import Message, CallbackQuery
@@ -30,6 +31,8 @@ async def admin_profile(message: Message):
     Show admin profile.
     """
     await message.answer('Добро пожаловать в профиль админа!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.admin_profile)
+
+"""========= USERS ========="""
 
 @router.callback_query(F.data == 'all_users')
 async def all_users(callback: CallbackQuery, state: FSMContext):
@@ -102,17 +105,38 @@ async def get_user_stats(callback: CallbackQuery, state: FSMContext):
             
         if stats:
             best_day = db.best_day_collection(username)
-            best_day = datetime.strptime(best_day[0], '%Y-%m-%d %H:%M').date()
+            best_day_date = datetime.strptime(best_day[2], '%Y-%m-%d %H:%M').date()
+            best_day_from = datetime.strptime(best_day[2], '%Y-%m-%d %H:%M').strftime('%H:%M')
+            best_day_to = datetime.strptime(best_day[3], '%Y-%m-%d %H:%M').strftime('%H:%M')
+            best_day_total_time = datetime.strptime(best_day[4], '%H:%M:%S').time()
+            best_day_hours, best_day_minutes = best_day_total_time.hour, best_day_total_time.minute
+            
+            worse_day = db.worse_day_collection(username)
+            worse_day_date = datetime.strptime(worse_day[2], '%Y-%m-%d %H:%M').date()
+            worse_day_from = datetime.strptime(worse_day[2], '%Y-%m-%d %H:%M').strftime('%H:%M')
+            worse_day_to = datetime.strptime(worse_day[3], '%Y-%m-%d %H:%M').strftime('%H:%M')
+            worse_day_total_time = datetime.strptime(worse_day[4], '%H:%M:%S').time()
+            worse_day_hours, worse_day_minutes = worse_day_total_time.hour, worse_day_total_time.minute
+            
             max_earnings = max([int(record[6]) for record in stats])
             max_collection = max([int(record[5]) for record in stats])
             await callback.message.edit_text(f'Статистика пользователя: @{username}\n\n'
                                              f'Всего выходов: {len(stats)} \n'
-                                             f'Всего собрано: {total_collection} \n'
-                                             f'Всего заработано: {total_earnings} \n\n'
-                                             f'Больше всего собрано: {max_collection} \n'
-                                             f'Больше всего заработано: {max_earnings} \n\n'
-                                             f'Лучший день: {best_day} \n\n'
-                                             f'Всего проработано: {total_hours}ч {total_minutes}м \n',
+                                             f'Всего собрано: {total_collection}€ \n'
+                                             f'Всего заработано: {total_earnings}€ \n'
+                                             f'Всего проработано: {total_hours}ч {total_minutes}м \n\n'
+                                             f'Больше всего собрано за день: {max_collection}€ \n'
+                                             f'Больше всего заработано за день: {max_earnings}€ \n\n'
+                                             f'🎉 Лучший рабочий день: {best_day_date} \n\n'
+                                             f'Часы работы лучшего дня: {best_day_from} - {best_day_to} \n'
+                                             f'Общее время работы лучшего дня: {best_day_hours}ч {best_day_minutes}м \n'
+                                             f'Общий сбор лучшего дня: {best_day[5]}€\n'
+                                             f'Общий заработок лучшего дня: {best_day[6]}€\n\n'
+                                             f'😭 Худший рабочий день: {worse_day_date} \n\n'
+                                             f'Часы работы худшего дня: {worse_day_from} - {worse_day_to} \n'
+                                             f'Общее время работы худшего дня: {worse_day_hours}ч {worse_day_minutes}м \n'
+                                             f'Общий сбор худшего дня: {worse_day[5]}€\n'
+                                             f'Общий заработок худшего дня: {worse_day[6]}€',
                                              reply_markup=prkb.admin_users_user_stats)
         else:
             await callback.message.edit_text(f'Статистика пользователя: {username}\n\n'
@@ -163,6 +187,34 @@ async def delete_yes(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text('Статистика @{username} удалена!')
     await callback.message.answer('Добро пожаловать в профиль админа!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.admin_profile)
 
+"""========= STATS ========="""
+@router.callback_query(F.data == 'stats')
+async def stats(callback: CallbackQuery):
+    """
+    Admin stats.
+    """
+    db = Database(config.DB_NAME)
+    total_collection_current_month = db.total_collection_current_month()
+    count_work_records_current_month = db.count_work_records_current_month()    
+    count_work_hours = db.count_work_hours_current_month()  
+    best_user_hours_current_month = db.best_user_hours_current_month()
+    best_user_collection_current_month = db.best_user_collection_current_month()
+    best_user_by_collection_current_month = db.best_user_by_collection_current_month()
+    current_mounth = datetime.now().strftime('%B').capitalize()
+    await callback.message.edit_text(
+        f'Статистика за {current_mounth}: {total_collection_current_month}€\n'
+        f'Всего собрано: {total_collection_current_month}€\n'
+        f'Всего выходов: {count_work_records_current_month}\n'
+        f'Всего часов работы : {count_work_hours}\n\n'
+        f'Больше всех часов работы за день у: @{best_user_hours_current_month[0]}\n'
+        f'    Проработал(а): {best_user_hours_current_month[1]}\n\n'
+        f'Больше всех сбор за день у: @{best_user_collection_current_month[0]}\n'
+        f'    Дата время начала: {best_user_collection_current_month[1]}\n'
+        f'    Работал(а): {best_user_collection_current_month[2]}\n'
+        f'    Сбор: {best_user_collection_current_month[3]}€\n\n'
+        f'Больше всех общий сбор за месяц у: @{best_user_by_collection_current_month[0]}\n'
+        f'    Сбор: {best_user_by_collection_current_month[1]}€\n\n',
+        reply_markup=prkb.pback)
 
 @router.callback_query(F.data == 'pback')
 async def back(callback: CallbackQuery, state: FSMContext):

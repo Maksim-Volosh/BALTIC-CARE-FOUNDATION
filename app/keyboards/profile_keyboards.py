@@ -1,4 +1,5 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+import config 
 
 admin_profile = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Пользователи', callback_data='all_users')],
@@ -12,7 +13,7 @@ admin_profile_users = InlineKeyboardMarkup(inline_keyboard=[
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-def get_pagination_markup(page, total_users, per_page=15):
+def get_pagination_markup(page, total_users, per_page=config.DEF_PAGINATE):
     total_pages = (total_users + per_page - 1) // per_page
     navigation_buttons = []
 
