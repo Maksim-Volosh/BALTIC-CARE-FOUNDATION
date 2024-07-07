@@ -282,5 +282,5 @@ async def back(callback: CallbackQuery):
     """
     Handles the back callback query. It sends a message and updates the keyboard.
     """
-    await callback.answer('Вы вернулись назад')
+    await callback.message.delete()
     await callback.message.answer('Вы вернулись назад', reply_markup=mainkb.main)

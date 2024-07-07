@@ -24,7 +24,7 @@ async def profile(message: Message):
     if await is_admin(message):
         await admin_profile(message)
     else:
-        await message.answer('Профиль юзера', reply_markup=mainkb.main)
+        await user_profile(message)
 
 async def admin_profile(message: Message):
     """
@@ -75,7 +75,7 @@ async def choice_user_state(message: Message, state: FSMContext):
     if user:
         await state.update_data(username=username)
         await message.answer(f'Пользователь: @{username}\n\n'
-                             f'Имя: {user[1]} \n\n'
+                             f'Полное имя: {user[1]} \n\n'
                              f'Номер: {user[2]} \n\n'
                              f'Дата рождения: {user[3]}', reply_markup=prkb.admin_users_user)
     else:
@@ -188,6 +188,7 @@ async def delete_yes(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer('Добро пожаловать в профиль админа!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.admin_profile)
 
 """========= STATS ========="""
+
 @router.callback_query(F.data == 'stats')
 async def stats(callback: CallbackQuery):
     """
@@ -219,7 +220,87 @@ async def stats(callback: CallbackQuery):
 @router.callback_query(F.data == 'pback')
 async def back(callback: CallbackQuery, state: FSMContext):
     """
-    Back to admin profile menu.
+    Back to admin or user profile menu.
     """
     await state.clear()
-    await callback.message.edit_text('Добро пожаловать в профиль админа!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.admin_profile)
+    if await is_admin(callback):
+       await callback.message.edit_text('Добро пожаловать в профиль админа!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.admin_profile)
+    else:
+        await callback.message.edit_text('Добро пожаловать в ваш профиль!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.user_profile)
+    
+"""========= USER PROFILE ========="""
+
+async def user_profile(message: Message):
+    """
+    Show user profile.
+    """
+    await message.answer('Добро пожаловать в ваш профиль!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.user_profile)
+    
+@router.callback_query(F.data == 'user_stats')
+async def user_stats(callback: CallbackQuery):
+    db = Database(config.DB_NAME)
+    username = callback.from_user.username
+    if username:
+        stats = db.get_work_records(username)
+        total_collection = sum([int(record[5]) for record in stats])
+        total_earnings = sum([int(record[6]) for record in stats])
+        
+        total_time_worked = timedelta()
+        for record in stats:
+            time_str = record[4]  # Предполагается, что это строка в формате 'HH:MM:SS'
+            hours, minutes, seconds = map(int, time_str.split(':'))
+            total_time_worked += timedelta(hours=hours, minutes=minutes, seconds=seconds)
+        total_hours = round(total_time_worked.total_seconds() // 3600)
+        total_minutes = round((total_time_worked.total_seconds() % 3600) // 60)
+            
+        if stats:
+            best_day = db.best_day_collection(username)
+            best_day_date = datetime.strptime(best_day[2], '%Y-%m-%d %H:%M').date()
+            best_day_from = datetime.strptime(best_day[2], '%Y-%m-%d %H:%M').strftime('%H:%M')
+            best_day_to = datetime.strptime(best_day[3], '%Y-%m-%d %H:%M').strftime('%H:%M')
+            best_day_total_time = datetime.strptime(best_day[4], '%H:%M:%S').time()
+            best_day_hours, best_day_minutes = best_day_total_time.hour, best_day_total_time.minute
+            
+            if len(stats) >= 4:
+                worse_day = db.worse_day_collection(username)
+                worse_day_date = datetime.strptime(worse_day[2], '%Y-%m-%d %H:%M').date()
+                worse_day_from = datetime.strptime(worse_day[2], '%Y-%m-%d %H:%M').strftime('%H:%M')
+                worse_day_to = datetime.strptime(worse_day[3], '%Y-%m-%d %H:%M').strftime('%H:%M')
+                worse_day_total_time = datetime.strptime(worse_day[4], '%H:%M:%S').time()
+                worse_day_hours, worse_day_minutes = worse_day_total_time.hour, worse_day_total_time.minute
+            
+            max_earnings = max([int(record[6]) for record in stats])
+            max_collection = max([int(record[5]) for record in stats])
+            user = db.get_user(username)
+            
+            message_text = (
+                f'Пользователь: @{username}\n\n'
+                f'Полное имя: {user[1]} \n'
+                f'Номер: {user[2]} \n'
+                f'Дата рождения: {user[3]}\n\n'
+                f'Статистика пользователя: @{username}\n\n'
+                f'Всего выходов: {len(stats)} \n'
+                f'Всего собрано: {total_collection}€ \n'
+                f'Всего заработано: {total_earnings}€ \n'
+                f'Всего проработано: {total_hours}ч {total_minutes}м \n\n'
+                f'Больше всего собрано за день: {max_collection}€ \n'
+                f'Больше всего заработано за день: {max_earnings}€ \n\n'
+                f'🎉 Лучший рабочий день: {best_day_date} \n\n'
+                f'Часы работы лучшего дня: {best_day_from} - {best_day_to} \n'
+                f'Общее время работы лучшего дня: {best_day_hours}ч {best_day_minutes}м \n'
+                f'Общий сбор лучшего дня: {best_day[5]}€\n'
+                f'Общий заработок лучшего дня: {best_day[6]}€\n\n'
+            )
+
+            if len(stats) >= 5:
+                message_text += (
+                    f'😭 Худший рабочий день: {worse_day_date} \n\n'
+                    f'Часы работы худшего дня: {worse_day_from} - {worse_day_to} \n'
+                    f'Общее время работы худшего дня: {worse_day_hours}ч {worse_day_minutes}м \n'
+                    f'Общий сбор худшего дня: {worse_day[5]}€\n'
+                    f'Общий заработок худшего дня: {worse_day[6]}€'
+                )
+            await callback.message.edit_text(message_text, reply_markup=prkb.pback)
+        else:
+            await callback.message.edit_text(f'Ваша статистика\n\n'
+                                             f'Ошибка', reply_markup=prkb.pback)
