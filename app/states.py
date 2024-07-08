@@ -10,6 +10,11 @@ class Register(StatesGroup):
 class Place(StatesGroup):
     id_place = State()
     
+class AdminPlace(StatesGroup):
+    id_place = State() 
+
+class AddPlace(StatesGroup):
+    id_place = State()
 
 class Work(StatesGroup):
     worktime_started = State()

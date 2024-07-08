@@ -8,7 +8,7 @@ from aiogram import Bot
 from app.database import Database
 import app.keyboards.main_keyboards as mainkb
 import app.keyboards.work_keyboards as workkb
-from app.utils.utils import check_registered, is_admin
+from app.utils.utils import check_registered, is_admin, validate_place
 import config 
 from ..places import places
 import re
@@ -138,7 +138,7 @@ async def select_place(message: Message, state: FSMContext):
     """
     if await check_registered(message):
         await state.set_state(Place.id_place)
-        await message.answer('Привет, для начала работы, напиши на какой точке хуяришь. Введи номер места, который тебе дал владос!',
+        await message.answer('Привет, для начала работы, напиши на какой точке хуяришь. Введи номер места, который тебе дал менеджер!',
                             reply_markup=mainkb.cancel);
     else:
         await message.answer('Вы не зарегестрированы! Для регистрации нажмите "Зарегестрироваться"', 
@@ -152,14 +152,16 @@ async def place(message: Message, state: FSMContext):
 
     If the user enters a valid place, the state is updated with the selected place and the user is prompted to start working. Otherwise, an error message is sent to the user.
     """
-    if message.text not in places:
-        await message.answer('Такого места нет!')
-        return
-    await state.update_data(id_place=message.text)
-    data = await state.get_data()
-    await message.answer(f'Вы выбрали место: {places[data["id_place"]][0]}\n\nАдрес: {places[data["id_place"]][1]}\n\nGoogle maps: {places[data["id_place"]][2]}',
-                         reply_markup=workkb.start_work)
-    await state.clear()
+    db = Database(config.DB_NAME)
+    place = db.get_place(message.text)
+    placeid = message.text
+    if validate_place(place, placeid):
+        await message.answer(validate_place(place, placeid))
+    else:
+        await state.update_data(place=place)
+        await message.answer(f'Вы выбрали место: {place[1]}\n\nАдрес: {place[2]}\n\nGoogle maps: {place[3]}',
+                            reply_markup=workkb.start_work)
+        await state.clear()
 
 
 # Work started ==> End work
@@ -170,23 +172,9 @@ async def back(callback: CallbackQuery, state: FSMContext):
     """
     await state.set_state(Work.worktime_started)
     await state.update_data(worktime_started=datetime.now().strftime('%Y-%m-%d %H:%M'))
-    print("Начало работы: ", datetime.now().strftime('%Y-%m-%d %H:%M'))
     await callback.answer('Вы начали работу')
-    await callback.message.edit_text('Вы начали работу!!!\nНе забудь когда закончишь нажать "закончил". Или если перерыв нажми "перерыв"',
+    await callback.message.edit_text('Вы начали работу!!!\nНе забудь когда закончишь нажать "Закончить работу". Или если хочешь сделать перерыв нажми "Сделать перерыв"',
                                      reply_markup=workkb.work_started)
-
-# End work ==> Main KB
-@router.callback_query(F.data == 'end_work')
-async def end_work(callback: CallbackQuery, state: FSMContext):
-    """
-    Set state to worktime_ended and update data with current time.
-    Then set state to collection and send message to user.
-    """
-    await state.set_state(Work.worktime_ended)
-    await state.update_data(worktime_ended=datetime.now().strftime('%Y-%m-%d %H:%M'))
-    print("Завершение работы: ", datetime.now().strftime('%Y-%m-%d %H:%M'))
-    await state.set_state(Work.collection)
-    await callback.message.answer('Теперь едь на офис и спроси сколько ты заработал, и после отправь мне сколько ты собрал. Например - "100"')
     
 @router.callback_query(F.data == 'pause_work')
 async def pause_work(callback: CallbackQuery, state: FSMContext):
@@ -195,7 +183,6 @@ async def pause_work(callback: CallbackQuery, state: FSMContext):
     """
     await state.set_state(Work.pause_time)
     await state.update_data(pause_time=datetime.now().strftime('%Y-%m-%d %H:%M'))
-    print("Пауза работы: ", datetime.now().strftime('%Y-%m-%d %H:%M'))
     await callback.message.edit_text('Ты взял перерыв, не забудь продолжить или завершить работу!!!', reply_markup=workkb.pause_work)
 
 @router.callback_query(F.data == 'resume_work')
@@ -205,9 +192,19 @@ async def resume_work(callback: CallbackQuery, state: FSMContext):
     """
     await state.set_state(Work.resume_time)
     await state.update_data(resume_time=datetime.now().strftime('%Y-%m-%d %H:%M'))
-    print("Продолжение работы: ", datetime.now().strftime('%Y-%m-%d %H:%M'))
-    await callback.message.edit_text('Ты продолжил работу, не забудь продолжить или завершить работу!!!', reply_markup=workkb.work_started)
-
+    await callback.message.edit_text('Ты продолжил работу, не забудь завершить работу!!!', reply_markup=workkb.work_started)
+    
+# End work ==> Main KB
+@router.callback_query(F.data == 'end_work')
+async def end_work(callback: CallbackQuery, state: FSMContext):
+    """
+    Set state to worktime_ended and update data with current time.
+    Then set state to collection and send message to user.
+    """
+    await state.set_state(Work.worktime_ended)
+    await state.update_data(worktime_ended=datetime.now().strftime('%Y-%m-%d %H:%M'))
+    await state.set_state(Work.collection)
+    await callback.message.answer('Теперь едь на офис и спроси сколько ты заработал, и после отправь мне сколько ты собрал. Например - "100"')
 
 @router.message(Work.collection)
 async def collection(message: Message, state: FSMContext):
@@ -238,17 +235,13 @@ async def work_finish(message: Message, state: FSMContext):
         if pause_worktime:
             if resume_worktime:
                 total_pause_time = datetime.strptime(resume_worktime, '%Y-%m-%d %H:%M') - datetime.strptime(pause_worktime, '%Y-%m-%d %H:%M')
-                print("total_pause_time", total_pause_time)
                 total_time_work = datetime.strptime(endtime, '%Y-%m-%d %H:%M') - datetime.strptime(starttime, '%Y-%m-%d %H:%M') - total_pause_time
-                print("total_time_work if resume true", total_time_work)
             else:
                 total_time_work = datetime.strptime(pause_worktime, '%Y-%m-%d %H:%M') - datetime.strptime(starttime, '%Y-%m-%d %H:%M')
-                print("total_time_work if resume false", total_time_work)
         else:
             total_time_work = datetime.strptime(endtime, '%Y-%m-%d %H:%M') - datetime.strptime(starttime, '%Y-%m-%d %H:%M')
-            print("total_time_work if pause has been false", total_time_work)
         collection = int(data.get('collection'))
-        earnings = collection / 100 * 20    
+        earnings = collection / 100 * config.PERCENT 
         
         await message.answer(f'Ты закончил работу!!!', reply_markup=mainkb.main)
         

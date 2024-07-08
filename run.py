@@ -17,7 +17,7 @@ dp.include_router(profile_router)
 async def main():
     await set_commands(bot)
     print('BOT HAS BEEN STARTED')
-    await dp.start_polling(bot, skip_updates=False)
+    await dp.start_polling(bot, skip_updates=True)
     
     
     

@@ -19,15 +19,25 @@ class Database():
                            "user_tgid TEXT);")
             self.cursor.execute(query_users)
             
+            # Создаем таблицу для записи рабочих точек
+            query_work_place = (
+                "CREATE TABLE IF NOT EXISTS place ("
+                "id INTEGER PRIMARY KEY, "
+                "name TEXT, "
+                "adress TEXT, "
+                "url_map TEXT)"
+            )
+            self.cursor.execute(query_work_place)
+
             # Создаем таблицу для записи рабочей информации
             query_work = ("CREATE TABLE IF NOT EXISTS work_records("
-                          "id INTEGER PRIMARY KEY, "
-                          "username TEXT, "
-                          "start_time TEXT, "
-                          "end_time TEXT, "
-                          "total_time REAL, "
-                          "collection REAL, "
-                          "earnings REAL);")
+                        "id INTEGER PRIMARY KEY, "
+                        "username TEXT, "
+                        "start_time TEXT, "
+                        "end_time TEXT, "
+                        "total_time REAL, "
+                        "collection REAL, "
+                        "earnings REAL);")
             self.cursor.execute(query_work)
 
             self.connection.commit()
@@ -158,7 +168,24 @@ class Database():
     def get_work_records(self, username):
         records = self.cursor.execute("SELECT * FROM work_records WHERE username = ?", (username,))
         return records.fetchall()
+    
+    def get_place(self, id):
+        self.cursor.execute("SELECT * FROM place WHERE id = ?", (id,))
+        return self.cursor.fetchone()
+    
+    def all_places(self):
+        self.cursor.execute("SELECT * FROM place")
+        return self.cursor.fetchall()
+    
+    def delete_place(self, id):
+        self.cursor.execute("DELETE FROM place WHERE id = ?", (id,))
+        self.connection.commit()
 
+    def add_place(self, name, adress, url_map):
+        self.cursor.execute("INSERT INTO place(name, adress, url_map) VALUES(?, ?, ?)", 
+        (name, adress, url_map))
+        self.connection.commit()
+    
     def __del__(self):
         self.cursor.close()
         self.connection.close()

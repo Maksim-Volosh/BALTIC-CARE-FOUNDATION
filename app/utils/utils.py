@@ -19,3 +19,12 @@ def paginate_users(users, page, per_page=config.DEF_PAGINATE):
     start = (page - 1) * per_page
     end = start + per_page
     return users[start:end]
+
+def validate_place(place, placeid):
+    if not str(placeid).isdigit():
+        return 'Номер должен быть цифрой, и целым положительным числом! Попробуйте ещё раз.'
+    if int(placeid) <= 0:
+        return 'Номер должен быть цифрой, и целым положительным числом! Попробуйте ещё раз.'
+    if not place:
+        return 'Такого места нет! Уточните номер места и попробуйте ещё раз.'
+    return None
