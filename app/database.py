@@ -1,6 +1,8 @@
+import secrets
 import sqlite3
-import bcrypt
-from datetime import datetime, timedelta
+import string
+from datetime import datetime
+
 
 class Database():
     def __init__(self, db_name):
@@ -39,6 +41,12 @@ class Database():
                         "collection REAL, "
                         "earnings REAL);")
             self.cursor.execute(query_work)
+            
+            # Создаем таблицу для записи токена регистрации
+            query_token = ("CREATE TABLE IF NOT EXISTS tokens("
+                        "id INTEGER PRIMARY KEY, "
+                        "token TEXT UNIQUE);")
+            self.cursor.execute(query_token)
 
             self.connection.commit()
         except sqlite3.Error as error:
@@ -185,8 +193,31 @@ class Database():
         self.cursor.execute("INSERT INTO place(name, adress, url_map) VALUES(?, ?, ?)", 
         (name, adress, url_map))
         self.connection.commit()
+        
+    def get_token(self, token):
+        self.cursor.execute("SELECT * FROM tokens WHERE token = ?", (token,))
+        return self.cursor.fetchone()
+    
+    def all_tokens(self):
+        self.cursor.execute("SELECT * FROM tokens")
+        return self.cursor.fetchall()
+    
+    def add_token(self):
+        token = generate_secure_token()
+        self.cursor.execute("INSERT INTO tokens(token) VALUES(?)", (token,))
+        self.connection.commit()
+    
+    def delete_token(self, token):
+        self.cursor.execute("DELETE FROM tokens WHERE token = ?", (token,))
+        self.connection.commit()
     
     def __del__(self):
         self.cursor.close()
         self.connection.close()
+
+
+def generate_secure_token(length=20):
+    characters = string.ascii_letters + string.digits + string.punctuation
+    token = ''.join(secrets.choice(characters) for _ in range(length))
+    return token
 

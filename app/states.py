@@ -1,6 +1,7 @@
 from aiogram.fsm.state import State, StatesGroup
 
 class Register(StatesGroup):
+    RegToken = State()
     RegFullName = State()
     RegPhoneNumber = State()
     RegDate = State()

@@ -1,6 +1,8 @@
 from aiogram.types import Message
+
+import config
 from app.database import Database
-import config 
+
 
 async def check_registered(message: Message):
     db = Database(config.DB_NAME)

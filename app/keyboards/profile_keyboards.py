@@ -7,6 +7,7 @@ admin_profile = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Пользователи', callback_data='all_users')],
     [InlineKeyboardButton(text='Статистика', callback_data='stats')],
     [InlineKeyboardButton(text='Точки', callback_data='places')],
+    [InlineKeyboardButton(text='Токены регистрации', callback_data='tokens')],
 ])
 
 admin_all_places = InlineKeyboardMarkup(inline_keyboard=[
@@ -32,6 +33,16 @@ admin_add_place = InlineKeyboardMarkup(inline_keyboard=[
 admin_place_added = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Добавить еще точку', callback_data='add_place')],
     [InlineKeyboardButton(text='Назад', callback_data='pback')],
+])
+
+admin_tokens = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Добавить токен', callback_data='add_token')],
+    [InlineKeyboardButton(text='Назад', callback_data='pback')],
+])
+
+admin_add_token = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Да', callback_data='add_token_yes')],
+    [InlineKeyboardButton(text='Нет', callback_data='pback')],
 ])
 
 admin_profile_users = InlineKeyboardMarkup(inline_keyboard=[
