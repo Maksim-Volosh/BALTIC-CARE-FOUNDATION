@@ -39,7 +39,9 @@ class Database():
                         "end_time TEXT, "
                         "total_time REAL, "
                         "collection REAL, "
-                        "earnings REAL);")
+                        "earnings REAL, "
+                        "collection_term REAL,"
+                        "earnings_term REAL);")
             self.cursor.execute(query_work)
             
             # Создаем таблицу для записи токена регистрации
@@ -89,6 +91,17 @@ class Database():
         
         self.cursor.execute(
             "SELECT SUM(collection) FROM work_records WHERE strftime('%Y', start_time) = ? AND strftime('%m', start_time) = ?",
+            (str(current_year), f'{current_month:02}')
+        )
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+    
+    def total_terminal_collection_current_month(self):
+        current_year = datetime.now().year
+        current_month = datetime.now().month
+        
+        self.cursor.execute(
+            "SELECT SUM(collection_term) FROM work_records WHERE strftime('%Y', start_time) = ? AND strftime('%m', start_time) = ?",
             (str(current_year), f'{current_month:02}')
         )
         result = self.cursor.fetchone()
@@ -168,9 +181,9 @@ class Database():
         users = self.cursor.execute("SELECT * FROM users")
         return users.fetchall()
 
-    def add_work_record(self, username, start_time, end_time, total_time, collection, earnings):
-        self.cursor.execute("INSERT INTO work_records(username, start_time, end_time, total_time, collection, earnings) VALUES(?, ?, ?, ?, ?, ?)",
-                            (username, start_time, end_time, total_time, collection, earnings))
+    def add_work_record(self, username, start_time, end_time, total_time, collection, earnings, collection_term=0, earnings_term=0):
+        self.cursor.execute("INSERT INTO work_records(username, start_time, end_time, total_time, collection, earnings, collection_term, earnings_term) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+                            (username, start_time, end_time, total_time, collection, earnings, collection_term, earnings_term))
         self.connection.commit()
 
     def get_work_records(self, username):

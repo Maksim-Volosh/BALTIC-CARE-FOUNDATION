@@ -28,7 +28,7 @@ async def admin_profile(message: Message):
     """
     Show admin profile.
     """
-    await message.answer('Добро пожаловать в профиль админа!!! \n\nЧто вы хотите сделать?', reply_markup=prkb.admin_profile)
+    await message.answer('Добро пожаловать в профиль админа \n\nЧто вы хотите сделать?', reply_markup=prkb.admin_profile)
 
 """========= USERS ========="""
 
@@ -196,14 +196,16 @@ async def stats(callback: CallbackQuery):
     count_work_records_current_month = db.count_work_records_current_month()
     if count_work_records_current_month > 0:    
         total_collection_current_month = db.total_collection_current_month()
+        total_terminal_collection_current_month = db.total_terminal_collection_current_month()
         count_work_hours = db.count_work_hours_current_month()  
         best_user_hours_current_month = db.best_user_hours_current_month()
         best_user_collection_current_month = db.best_user_collection_current_month()
         best_user_by_collection_current_month = db.best_user_by_collection_current_month()
-        current_mounth = datetime.now().strftime('%B').capitalize()
+        current_mounth = datetime.now().strftime('%B').capitalize()        
         await callback.message.edit_text(
             f'Статистика за {current_mounth}: {total_collection_current_month}€\n'
-            f'Всего собрано: {total_collection_current_month}€\n'
+            f'Всего собрано Наличными: {total_collection_current_month}€\n'
+            f'Всего собрано Терминалом/QR-Кодом: {total_terminal_collection_current_month}€\n'
             f'Всего выходов: {count_work_records_current_month}\n'
             f'Всего часов работы : {count_work_hours}\n\n'
             f'Больше всех часов работы за день у: @{best_user_hours_current_month[0]}\n'

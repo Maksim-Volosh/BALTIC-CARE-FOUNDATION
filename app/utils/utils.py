@@ -15,7 +15,7 @@ async def check_registered(message: Message):
        return True
 
 async def is_admin(message: Message):
-    return message.from_user.username == config.ADMIN_USERNAME
+    return message.from_user.username in config.ADMIN_USERNAME
 
 def paginate_users(users, page, per_page=config.DEF_PAGINATE):
     start = (page - 1) * per_page

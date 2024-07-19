@@ -23,6 +23,8 @@ class Work(StatesGroup):
     pause_time = State()
     resume_time = State()
     collection = State()
+    collection_term = State()
+    collection_term_finish = State()
     finish = State()
 
 class ChoiceUser(StatesGroup):

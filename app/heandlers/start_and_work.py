@@ -137,7 +137,7 @@ async def end_work(callback: CallbackQuery, state: FSMContext):
     await state.update_data(worktime_ended=datetime.now().strftime('%Y-%m-%d %H:%M'))
     await state.update_data(total_pause_time=total_pause_time)
     await state.set_state(Work.collection)
-    await callback.message.answer('Теперь едь на офис и спроси сколько ты заработал, и после отправь мне сколько ты собрал. Например - "100"')
+    await callback.message.answer('Теперь едь на офис и спроси сколько ты заработал, и после отправь мне сколько ты собрал. Например - "100"\n\nАдресс офиса: https://www.google.com/maps/place/Smolensko+g.+5,+Vilnius,+03202+Vilniaus+m.+sav.')
 
 @router.message(Work.collection)
 async def collection(message: Message, state: FSMContext):
@@ -150,6 +150,32 @@ async def collection(message: Message, state: FSMContext):
     else:
         await state.update_data(collection=message.text)
         await message.answer(f'Твой сбор {message.text}, верно??', reply_markup=mainkb.yes_or_no)
+        await state.set_state(Work.collection_term)
+
+@router.message(Work.collection_term)
+async def collection_term(message: Message, state: FSMContext):
+    """
+    Handle user input for collection_term.
+    User should input number without currency sign.
+    """
+    if message.text == 'Да':
+        await message.answer('Теперь напиши сколько ты собрал Терминалом/QR-Кодом. Если ты не использовал терминал или тебе не донатили QR-Кодом то напиши 0')
+        await state.set_state(Work.collection_term_finish)
+    else:
+        await state.set_state(Work.collection)
+        await message.answer('Введи снова')
+        
+@router.message(Work.collection_term_finish)
+async def collection_term_finish(message: Message, state: FSMContext):
+    """
+    Handle user input for collection_term_finish.
+    User should input number without currency sign.
+    """
+    if not message.text.isdigit():
+        await message.answer('Это должно быть целое положительное число, не -100, не 100.22. А например 100')
+    else:
+        await state.update_data(collection_term=message.text)
+        await message.answer(f'Твой сбор терминалом {message.text}, верно??', reply_markup=mainkb.yes_or_no)
         await state.set_state(Work.finish)
         
 @router.message(Work.finish)
@@ -169,17 +195,19 @@ async def work_finish(message: Message, state: FSMContext):
         total_time_work = endtime - starttime - total_pause_time
         
         collection = int(data.get('collection'))
-        earnings = round(collection / 100 * config.PERCENT, 2)
+        collection_term = int(data.get('collection_term'))
+        earnings_term = round(collection_term / 100 * config.PERCENT_TERM, 2)
+        earnings = round(collection / 100 * config.PERCENT, 2) + earnings_term
         
         db = Database(config.DB_NAME)
-        db.add_work_record(username, str(starttime.strftime('%Y-%m-%d %H:%M')), str(endtime.strftime('%Y-%m-%d %H:%M')), str(total_time_work), collection, earnings)
+        db.add_work_record(username, str(starttime.strftime('%Y-%m-%d %H:%M')), str(endtime.strftime('%Y-%m-%d %H:%M')), str(total_time_work), collection, earnings, collection_term, earnings_term)
         
         hours = total_time_work.seconds // 3600
         minutes = (total_time_work.seconds // 60) % 60
-        await message.answer(f'Твое общее время работы: {hours} ч. {minutes} мин.\nТвой сбор: {collection}€. \nТы заработал: {earnings}€.')
+        await message.answer(f'Твое общее время работы: {hours} ч. {minutes} мин.\nТвой сбор: {collection}€. Терминалом/QR-Кодом: {collection_term}€ \nТы заработал: {earnings}€.')
         await state.clear()
     else:
-        await state.set_state(Work.collection)
+        await state.set_state(Work.collection_term_finish)
         await message.answer('Введи снова')
     
 # Back

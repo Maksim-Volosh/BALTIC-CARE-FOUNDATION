@@ -49,7 +49,7 @@ async def user_stats(callback: CallbackQuery):
             best_day_total_time = datetime.strptime(best_day[4], '%H:%M:%S').time()
             best_day_hours, best_day_minutes = best_day_total_time.hour, best_day_total_time.minute
             
-            if len(stats) >= 4:
+            if len(stats) >= 3:
                 worse_day = db.worse_day_collection(username)
                 worse_day_date = datetime.strptime(worse_day[2], '%Y-%m-%d %H:%M').date()
                 worse_day_from = datetime.strptime(worse_day[2], '%Y-%m-%d %H:%M').strftime('%H:%M')
@@ -80,7 +80,7 @@ async def user_stats(callback: CallbackQuery):
                 f'Общий заработок лучшего дня: {best_day[6]}€\n\n'
             )
 
-            if len(stats) >= 5:
+            if len(stats) >= 3:
                 message_text += (
                     f'😭 Худший рабочий день: {worse_day_date} \n\n'
                     f'Часы работы худшего дня: {worse_day_from} - {worse_day_to} \n'
